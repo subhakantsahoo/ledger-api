@@ -3,6 +3,9 @@
 A small backend for keeping account balances using credit and debit transactions.
 Built with **Node.js, Express 5, MongoDB and Mongoose**.
 
+**Live API:** https://ledger-api-244a.onrender.com
+(health check: [/health](https://ledger-api-244a.onrender.com/health), all routes are under `/api`, see [API documentation](#api-documentation))
+
 - Create accounts, add credits/debits, check balance, see transaction history
 - Bonus: transfer money between two accounts (all or nothing)
 - Safe under parallel requests: no overdrawn balances, no duplicate transactions
@@ -15,6 +18,7 @@ src/
   server.js             connects to MongoDB, then starts the server
   app.js                express app, routes, error handler
   db.js                 connectDB(), collection rules, withTransaction() helper
+  keepAlive.js          pings /health every 14 min while running on Render
   models/
     Account.js
     Transaction.js      unique index + hooks that block update/delete
@@ -358,8 +362,22 @@ The setup I used: **MongoDB Atlas** for the database and **Render** for the API.
    `mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/ledger?retryWrites=true&w=majority`
 2. **API (Render)**: push this repo to GitHub, then in Render choose *New → Blueprint* and pick the repo.
    `render.yaml` sets up the service. Set `MONGODB_URI` to the Atlas URL when asked.
-3. Open `https://<your-app>.onrender.com/health`. The free plan sleeps after 15 minutes,
-   so the first request can take ~30 seconds.
+3. Open `https://<your-app>.onrender.com/health`. It should return `{"status":"ok"}`.
+
+### Keeping the free server awake
+
+Render's free plan puts the server to sleep after 15 minutes with no requests,
+and the next request then takes ~30-60 seconds. Two things stop that:
+
+1. **Self ping (`src/keepAlive.js`).** When the app runs on Render (Render sets `RENDER_EXTERNAL_URL`
+   automatically), it calls its own `/health` every 14 minutes. Locally it does nothing.
+2. **GitHub Actions cron (`.github/workflows/keep-alive.yml`).** A backup that calls `/health`
+   every 14 minutes from GitHub. If the server ever does fall asleep (e.g. after a restart),
+   this wakes it up again. It can also be run by hand from the *Actions* tab.
+
+GitHub doesn't always run scheduled jobs exactly on time, which is why the self ping is the main one.
+Running all month uses ~720-744 of the 750 free instance hours Render gives per month, so keep only
+one free service running on the account.
 
 **Docker / AWS.** There's a `Dockerfile` as well:
 

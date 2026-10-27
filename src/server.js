@@ -1,6 +1,7 @@
 require('dotenv').config();
 const app = require('./app');
 const { connectDB } = require('./db');
+const { startKeepAlive } = require('./keepAlive');
 
 const PORT = process.env.PORT || 3000;
 
@@ -8,6 +9,7 @@ connectDB()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Ledger API running on http://localhost:${PORT}`);
+      startKeepAlive();
     });
   })
   .catch((err) => {
