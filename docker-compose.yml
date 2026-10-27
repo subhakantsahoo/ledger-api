@@ -1,0 +1,22 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: ledger-mongo
+    # MongoDB transactions only work on a replica set,
+    # so we run a replica set with just one member
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27020"]
+    ports:
+      - "27020:27020"
+    # starts the replica set the first time, after that it just checks it's up
+    healthcheck:
+      test: >
+        mongosh --port 27020 --quiet --eval
+        "try { rs.status() } catch (err) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27020' }] }) }"
+      interval: 5s
+      timeout: 30s
+      retries: 30
+    volumes:
+      - ledger-mongo-data:/data/db
+
+volumes:
+  ledger-mongo-data:

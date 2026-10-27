@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ledger-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      # set this one in the Render dashboard, it's the MongoDB Atlas connection string
+      - key: MONGODB_URI
+        sync: false
